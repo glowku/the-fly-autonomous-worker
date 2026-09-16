@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from .hawkes import simulate_hawkes, DEFAULT_PARAMS
 from .fly_art import generate_fly, render_commit_panel
-from .github_api import gh, create_or_update_file, get_default_branch
+from .github_api import gh, create_file, get_default_branch
 from .state import load as load_state, save as save_state
 
 REPO = os.environ.get("TARGET_REPO", "glowku/the-fly-autonomous-worker")
@@ -50,7 +50,7 @@ def run_commit_batch(n=20, seed=None):
     events = events[:n]
 
     if not events:
-        print("[commit] aucun événement généré (Hawkes vide)")
+        print("[commit] aucun événement généré (Hawkes vide)", flush=True)
         return []
 
     state = load_state()
@@ -67,7 +67,7 @@ def run_commit_batch(n=20, seed=None):
         path = f"flies/{ts.strftime('%Y%m%d')}/fly_{int(ts.timestamp() * 1e6)}_{i}.txt"
 
         try:
-            create_or_update_file(
+            create_file(
                 REPO,
                 path,
                 panel,
@@ -75,9 +75,9 @@ def run_commit_batch(n=20, seed=None):
                 branch=branch,
             )
             results.append({"status": "ok", "path": path, "msg": msg})
-            print(f"[commit {i + 1}/{len(events)}] {msg} @ t={t_min:.1f}min")
+            print(f"[commit {i + 1}/{len(events)}] {msg} @ t={t_min:.1f}min", flush=True)
         except Exception as e:
-            print(f"[commit {i + 1}] erreur: {e}")
+            print(f"[commit {i + 1}] erreur: {e}", flush=True)
             results.append({"status": "error", "reason": str(e)})
 
     ok = sum(1 for r in results if r["status"] == "ok")
@@ -85,7 +85,7 @@ def run_commit_batch(n=20, seed=None):
     try:
         save_state(state)
     except Exception as e:
-        print(f"[commit] save_state a échoué : {e}")
+        print(f"[commit] save_state a échoué : {e}", flush=True)
 
     return results
 
@@ -114,7 +114,7 @@ def run_fork_batch(n=3):
 
             fly = generate_fly(seed=int(time.time()) + i)
             path = f"contributions/fly_{branch}.txt"
-            create_or_update_file(
+            create_file(
                 f"{fork_owner}/{name}",
                 path,
                 fly,
@@ -133,10 +133,10 @@ def run_fork_batch(n=3):
                 },
             )
             results.append({"status": "ok", "pr": pr["number"], "branch": branch})
-            print(f"[fork {i + 1}/{n}] PR #{pr['number']} créée")
+            print(f"[fork {i + 1}/{n}] PR #{pr['number']} créée", flush=True)
             time.sleep(3)
         except Exception as e:
-            print(f"[fork {i + 1}] erreur: {e}")
+            print(f"[fork {i + 1}] erreur: {e}", flush=True)
             results.append({"status": "error", "reason": str(e)})
 
     ok = sum(1 for r in results if r["status"] == "ok")
@@ -144,7 +144,7 @@ def run_fork_batch(n=3):
     try:
         save_state(state)
     except Exception as e:
-        print(f"[fork] save_state a échoué : {e}")
+        print(f"[fork] save_state a échoué : {e}", flush=True)
 
     return results
 
@@ -158,6 +158,7 @@ def run_review_batch(n=3):
     try:
         prs = gh("GET", f"/repos/{owner}/{name}/pulls?state=open&per_page=20")
     except Exception as e:
+        print(f"[review] impossible de lister les PRs: {e}", flush=True)
         return [{"status": "error", "reason": str(e)}]
 
     for i, pr in enumerate(prs[:n]):
@@ -184,9 +185,9 @@ def run_review_batch(n=3):
                 json={"body": review, "event": "COMMENT"},
             )
             results.append({"status": "ok", "pr": pr_number})
-            print(f"[review {i + 1}/{n}] PR #{pr_number} review postée")
+            print(f"[review {i + 1}/{n}] PR #{pr_number} review postée", flush=True)
         except Exception as e:
-            print(f"[review {i + 1}] erreur: {e}")
+            print(f"[review {i + 1}] erreur: {e}", flush=True)
             results.append({"status": "error", "reason": str(e)})
 
     ok = sum(1 for r in results if r["status"] == "ok")
@@ -194,7 +195,7 @@ def run_review_batch(n=3):
     try:
         save_state(state)
     except Exception as e:
-        print(f"[review] save_state a échoué : {e}")
+        print(f"[review] save_state a échoué : {e}", flush=True)
 
     return results
 
@@ -222,10 +223,10 @@ def run_issue_batch(n=3):
                 },
             )
             results.append({"status": "ok", "issue": issue["number"]})
-            print(f"[issue {i + 1}/{n}] #{issue['number']} créée")
+            print(f"[issue {i + 1}/{n}] #{issue['number']} créée", flush=True)
             time.sleep(1)
         except Exception as e:
-            print(f"[issue {i + 1}] erreur: {e}")
+            print(f"[issue {i + 1}] erreur: {e}", flush=True)
             results.append({"status": "error", "reason": str(e)})
 
     state["total_issues"] = state.get("total_issues", 0) + sum(
@@ -234,6 +235,6 @@ def run_issue_batch(n=3):
     try:
         save_state(state)
     except Exception as e:
-        print(f"[issue] save_state a échoué : {e}")
+        print(f"[issue] save_state a échoué : {e}", flush=True)
 
     return results
