@@ -39,7 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           TARGET_REPO: ${{ github.repository }}
         run: |
-          python -c "
+          python -u -c "
           from bot.workers import run_commit_batch
           import os
           n = int('${{ inputs.batch }}' or '25')

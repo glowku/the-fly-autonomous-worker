@@ -29,7 +29,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           TARGET_REPO: ${{ github.repository }}
         run: |
-          python -c "
+          python -u -c "
           from bot.workers import run_review_batch
           results = run_review_batch(n=int('${{ inputs.count }}' or '5'))
           ok = sum(1 for r in results if r['status']=='ok')
