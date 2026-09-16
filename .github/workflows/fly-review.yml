@@ -1,0 +1,37 @@
+name: fly-review
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        default: '5'
+  schedule:
+    - cron: '30 */1 * * *'
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: fly-review
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Review worker
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          TARGET_REPO: ${{ github.repository }}
+        run: |
+          python -c "
+          from bot.workers import run_review_batch
+          results = run_review_batch(n=int('${{ inputs.count }}' or '5'))
+          ok = sum(1 for r in results if r['status']=='ok')
+          print(f'✅ {ok}/{len(results)} reviews postées')
+          "

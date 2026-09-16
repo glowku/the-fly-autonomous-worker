@@ -1,0 +1,24 @@
+name: fly-heartbeat
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+      - name: Update heartbeat
+        run: |
+          echo "last heartbeat: $(date -u +%Y-%m-%dT%H:%M:%SZ)" > HEARTBEAT.txt
+          git config user.name "fly-bot"
+          git config user.email "fly@bzzz.dev"
+          git add HEARTBEAT.txt
+          git commit -m "chore: heartbeat [skip ci]" || echo "nothing"
+          git push || echo "push failed"
